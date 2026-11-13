@@ -1,0 +1,42 @@
+
+name: Build TALREN APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'TALREN-GitHub-APK-Builder.zip'
+      - '.github/workflows/build-apk.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Unpack TALREN project
+        run: |
+          mkdir -p extracted
+          unzip -q TALREN-GitHub-APK-Builder.zip -d extracted
+          find extracted -name build.gradle -print
+      - name: Install Android SDK
+        uses: android-actions/setup-android@v3
+      - name: Build APK
+        run: |
+          APP_DIR=$(find extracted -name settings.gradle -printf '%h\n' | head -1)
+          test -n "$APP_DIR"
+          cd "$APP_DIR"
+          gradle assembleDebug --no-daemon
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: TALREN-Android-APK
+          path: '**/build/outputs/apk/debug/*.apk'
+          if-no-files-found: error
+  
